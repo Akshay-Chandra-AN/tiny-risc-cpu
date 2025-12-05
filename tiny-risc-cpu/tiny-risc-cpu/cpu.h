@@ -2,6 +2,7 @@
 #define CPU_H
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 #define MEM_SIZE 65536 //65536 = 2^16, because  uint16_t addresses can naturally index.
