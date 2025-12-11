@@ -8,7 +8,6 @@
 #define MEM_SIZE 65536 //65536 = 2^16, because  uint16_t addresses can naturally index.
 #define registers 8    //we have 8 general purpose registers
 
-
 //memory layout constants
 #define CODE_END    256         //reserve addresses 0 to 255 for code
 #define DATA_START  CODE_END
@@ -49,7 +48,7 @@ static inline uint16_t R_TYPE (uint8_t opcode, uint8_t rd, uint8_t rs, uint8_t r
 }
 
 
-/************************************CONTROL APIs**********************************/
+/**********************************CONTROL APIs**********************************/
 //function to reset or init cpu
 void cpu_reset(cpu_t *cpu);
 

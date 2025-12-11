@@ -91,12 +91,18 @@ void cpu_step(cpu_t *cpu)
             break;
         }
             
-        case OP_ST:
+        /*reads next word for target, addr.
+        //why wrote protection ? prevents self modifying code or accidental corruption of code
+         region - the emulator mimcs a simple (Write XOR Execute)protection.
+         */
+        case OP_ST: //two word, store
         {
             uint32_t addr = cpu->mem[cpu->PC++];
-            //only allowing writing to the data region
+            
+            //enforce write-protection: only allowing writing to the data region (addr>=data_start)
+            
             if(addr >= (uint32_t)DATA_START && addr < MEM_SIZE)
-            {
+            {   //uses rs register as source of data. rd is ignored in this encoding
                 cpu->mem[addr] = cpu->R[rs];
             }
             else{
@@ -106,5 +112,65 @@ void cpu_step(cpu_t *cpu)
             break;
         }
         
+        case OP_JMP: {
+            uint32_t addr = cpu->mem[cpu->PC++];
+            
+            //VALIDATE JUMP TARGET IS executable
+            if(addr < (uint32_t)CODE_END)
+            {
+                cpu->PC = (uint16_t)addr;
+            }
+            else{
+                printf("security fault : jmp target %"PRIu32"not in code region\n", addr);
+                cpu->running = false;
+            }
+            break;
+        }
+            
+        /*
+         reads branch target addr from next memory word. if registers are equal, set PC to addr.
+         */
+        case OP_BEQ: //conditional branch
+        {
+            //check for address word
+            if(cpu->PC >= MEM_SIZE-1)
+            {
+                printf("fault: BEQ needs address word but PC = %"PRIu32"out of range\n",(uint32_t)cpu->PC);
+                cpu->running = false;
+                break;
+            }
+            uint32_t addr = cpu->mem[cpu->PC++];
+            /*
+             add a security check, brnach target must be inside code region (addr < CODE_END),
+            otherwise a fault. Even if the branch target is allowed to be arbitary numeric,
+             the emulator chooses to restrict targets to executable addresses only (fail-fast)
+             */
+            if(addr < (uint32_t)CODE_END) {  //If registers are equal, sets PC to addr.
+                cpu->PC = (uint16_t)addr;
+            } else {
+                printf("security fault : beq target %"PRIu32"not in code region\n",addr);
+                cpu->running = false;
+            }
+            break;
+        }
+        
+        case OP_HALT:
+            cpu->running = false;
+            break;
+            
+        default :
+            printf("unknown opcode 0x%X at PC=%"PRIu32 "\n", opcode, (uint32_t)(cpu->PC -1));
+            cpu->running = false;
+            break;
+    }
+}
+
+//cpu-run : start executyion until HALT or a fauly sets running  = false;
+void cpu_run(cpu_t *cpu)
+{
+    cpu->running = true;
+    while(cpu->running)
+    {
+        cpu_step(cpu);
     }
 }
